@@ -144,6 +144,35 @@
             font-size: 0.9rem; color: #a0a0a0;
         }
         .team-display-name { color: var(--gold); font-size: 1.4rem; margin-bottom: 15px; font-weight: bold; letter-spacing: 1px; }
+
+        /* --- 여기부터 히스토리 스타일 시작 --- */
+        .history-section {
+            margin-top: 50px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #3c3c41;
+        }
+        .history-list { list-style: none; padding: 0; margin: 0; }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #2a2e33;
+            animation: fadeIn 0.5s ease;
+        }
+        .history-item:last-child { border-bottom: none; }
+        .history-match { font-size: 1rem; }
+        .history-vs { color: var(--gold); font-weight: bold; margin: 0 8px; }
+        .history-time { color: #666; font-size: 0.85rem; }
+        .empty-msg { color: #555; text-align: center; padding: 20px; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
@@ -192,7 +221,20 @@
             <div id="team1Champs"></div>
             <div id="team2Champs"></div>
         </div>
+        
     </div>
+
+    <!-- 히스토리 영역 시작 -->
+    <div class="history-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: var(--gold);">📜 최근 배정 기록 (최근 5개)</h3>
+            <button onclick="clearHistory()" style="background: #444; color: #ccc; padding: 5px 12px; font-size: 0.8rem; width: auto;">기록 삭제</button>
+        </div>
+        <ul id="historyList" class="history-list">
+            <li class="empty-msg">아직 기록이 없습니다.</li>
+        </ul>
+    </div>
+    
 </div>
 
 <script>
@@ -228,6 +270,7 @@
     window.onload = () => {
         updateImage('img1', currentSelection.team1);
         updateImage('img2', currentSelection.team2);
+        loadHistory();
     };
 
     function startRoulette() {
@@ -290,6 +333,9 @@
             document.getElementById('img2').classList.remove('spinning');
             renderChamps('team2Champs', document.getElementById('team2Label').innerText, currentSelection.team2);
         }
+        addHistoryLog(
+        document.getElementById('team1Label').innerText, currentSelection.team1,
+        document.getElementById('team2Label').innerText, currentSelection.team2);
         document.getElementById('spinBtn').disabled = false;
     }
 
@@ -320,6 +366,43 @@
             link.href = canvas.toDataURL();
             link.click();
         });
+    }
+
+// --- 히스토리 관리 함수들 ---
+    function addHistoryLog(t1, r1, t2, r2) {
+        const now = new Date();
+        const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const logItem = { time: timeStr, match: `${t1}(${r1}) vs ${t2}(${r2})` };
+
+        let saved = JSON.parse(localStorage.getItem('mega_history') || '[]');
+        saved.unshift(logItem); 
+        if (saved.length > 5) saved.pop(); 
+        localStorage.setItem('mega_history', JSON.stringify(saved));
+
+        renderHistory();
+    }
+
+    function renderHistory() {
+        const list = document.getElementById('historyList');
+        const saved = JSON.parse(localStorage.getItem('mega_history') || '[]');
+        
+        list.innerHTML = saved.map(item => `
+            <li class="history-item">
+                <span class="history-match">
+                    ${item.match.split(' vs ')[0]} <span class="history-vs">VS</span> ${item.match.split(' vs ')[1]}
+                </span>
+                <span class="history-time">${item.time}</span>
+            </li>
+        `).join('') || '<li class="empty-msg">아직 기록이 없습니다.</li>';
+    }
+
+    function loadHistory() { renderHistory(); }
+
+    function clearHistory() {
+        if(confirm("모든 기록을 삭제할까요?")) {
+            localStorage.removeItem('mega_history');
+            renderHistory();
+        }
     }
 </script>
 </body>
